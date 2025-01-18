@@ -1,4 +1,5 @@
 use rand::Rng;
+use serde::{Deserialize, Serialize};
 
 // Sigmoid activation function
 pub fn sigmoid(x: f64) -> f64 {
@@ -17,6 +18,8 @@ pub fn xavier_init(num_connections: usize) -> f64 {
 }
 
 // Represents a single neuron
+
+#[derive(Serialize, Deserialize)]
 pub struct Neuron {
     pub value: f64,
     pub weights: Vec<f64>,

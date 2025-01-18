@@ -1,12 +1,14 @@
+use serde::{Deserialize, Serialize};
 use crate::neural_layer::Layer;
 
 // Represents the entire neural network
+#[derive(Serialize, Deserialize)]
 pub struct NeuralNetwork {
    pub  layers: Vec<Layer>,
 }
 
 impl NeuralNetwork {
-  pub  fn new(layer_sizes: &[usize]) -> Self {
+  pub  fn new( layer_sizes: &[usize]) -> Self {
 
       let mut layers = Vec::new();
       for i in 0..layer_sizes.len() - 1 {
@@ -44,7 +46,6 @@ impl NeuralNetwork {
             if i > 0 {
                 // Access the neurons of the previous layer immutably after mutable borrow of `self.layers[i]`
                 let previous_layer_neurons = &self.layers[i].neurons;
-
                 // Calculate the errors for the previous layer
                 errors = previous_layer_neurons.iter()
                     .map(|neuron| neuron.weights.iter()

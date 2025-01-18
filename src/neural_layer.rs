@@ -1,6 +1,8 @@
+use serde::{Deserialize, Serialize};
 use crate::neural::{sigmoid_derivative, Neuron};
 
 // Represents a single layer of neurons
+#[derive(Serialize, Deserialize)]
 pub struct Layer {
    pub neurons: Vec<Neuron>,
 }
