@@ -10,7 +10,7 @@ impl NeuralNetwork {
 
       let mut layers = Vec::new();
       for i in 0..layer_sizes.len() - 1 {
-          layers.push(Layer::new(layer_sizes[i + 1], layer_sizes[i]));
+          layers.push(Layer::new(layer_sizes[i + 1], layer_sizes[i])); //first layer_sizes[0] for inputs of model
       }
       Self { layers }
     }
@@ -23,60 +23,41 @@ impl NeuralNetwork {
         current_inputs
     }
 
-   pub  fn backpropagate(&mut self, inputs: &[f64], expected_outputs: &[f64], learning_rate: f64) {
+    pub fn backpropagate(&mut self, inputs: &[f64], expected_outputs: &[f64], learning_rate: f64) {
+        // Feedforward: Calculate activations for each layer
         let mut activations = vec![inputs.to_vec()];
         for layer in &mut self.layers {
-            let output = layer.feed_forward(activations.last().unwrap());
-            activations.push(output);
+            activations.push(layer.feed_forward(activations.last().unwrap()));
         }
 
-        let mut errors = vec![vec![0.0; self.layers.last().unwrap().neurons.len()]];
-        for (i, neuron) in self.layers.last().unwrap().neurons.iter().enumerate() {
-            errors[0][i] = expected_outputs[i] - neuron.value;
-        }
+        // Calculate output errors
+        let mut errors = self.layers.last().unwrap().neurons.iter().enumerate()
+            .map(|(neuron_index, neuron)| expected_outputs[neuron_index] - neuron.value)
+            .collect::<Vec<_>>();
 
-        let mut layer_errors = errors.remove(0);
+        // Backpropagate errors and adjust weights
         for i in (0..self.layers.len()).rev() {
             let layer_inputs = &activations[i];
-            self.layers[i].adjust_weights(layer_inputs, learning_rate, &layer_errors);
+            self.layers[i].adjust_weights(layer_inputs, learning_rate, &errors);
 
+            // Prepare errors for the previous layer (if not the input layer)
             if i > 0 {
-                let mut new_errors = vec![0.0; self.layers[i - 1].neurons.len()];
-                for (j, neuron) in self.layers[i].neurons.iter().enumerate() {
-                    for (k, &weight) in neuron.weights.iter().enumerate() {
-                        new_errors[k] += layer_errors[j] * weight;
-                    }
-                }
-                layer_errors = new_errors;
+                // Access the neurons of the previous layer immutably after mutable borrow of `self.layers[i]`
+                let previous_layer_neurons = &self.layers[i].neurons;
+
+                // Calculate the errors for the previous layer
+                errors = previous_layer_neurons.iter()
+                    .map(|neuron| neuron.weights.iter()
+                        .zip(errors.iter())
+                        .map(|(weight, &error)| weight * error)
+                        .sum())
+                    .collect::<Vec<_>>();
             }
         }
+
     }
+
 }
 
-pub fn main() {
-    let mut network = NeuralNetwork::new(&[2, 4, 1]); // Add more neurons to hidden layer
 
-    let training_data = vec![
-        (vec![0.0, 0.0], vec![0.0]),
-        (vec![0.0, 1.0], vec![1.0]),
-        (vec![1.0, 0.0], vec![1.0]),
-        (vec![1.0, 1.0], vec![0.0]),
-    ];
-    let learning_rate = 0.9; // Adjusted learning rate
-    let epochs = 5000;      // Fewer epochs with better training
-
-    for epoch in 0..epochs {
-        for (inputs, expected_outputs) in &training_data {
-            network.backpropagate(inputs, expected_outputs, learning_rate);
-        }
-        if epoch % 500 == 0 {
-            println!("Epoch {} complete", epoch);
-        }
-    }
-
-    for (inputs, _) in &training_data {
-        let output = network.feed_forward(inputs);
-        println!("Inputs: {:?}, Output: {:?}", inputs, output);
-    }
-}
 
